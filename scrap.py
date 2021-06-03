@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from schemas import Consejal, OrdenDia, Ordenanza, Carta
 from datetime import datetime
 import re
+transport = httpx.HTTPTransport(uds="/var/run/docker.sock")
 # In [5]: response = requests.post("http://www.portalwebvillamercedes.gob.ar/ord/index.php", data=dict(textobuscar=
 #    ...: 2021))
 DEFAULT_TIMEOUT = 60
