@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import FastAPI, Query, Path
-from schemas import Ordenanza
+from schemas import Carta, Ordenanza
 from datetime import datetime
 import scrap
 app = FastAPI()
@@ -24,3 +24,8 @@ async def get_ordenanzas_desde(
 @app.get("/ordenanza/{id}", response_model=Ordenanza)
 async def get_ordenanza(id: int = Path(..., description="Numero de ordenanza")):
     return await scrap.get_ordenanza_por_numero(id)
+
+
+@app.get("/hcd/presidente", response_model=Carta)
+async def get_presidente_hcd():
+    return await scrap.get_presidente_honorable_consejo_deliberante()
