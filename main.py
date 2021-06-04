@@ -1,13 +1,21 @@
 from typing import List
-from fastapi import FastAPI, Query, Path
+from fastapi import FastAPI, Query, Path, Depends
 from schemas import Carta, Consejal, OrdenDia, Ordenanza
 from datetime import datetime
 import scrap
+import httpx
+
 app = FastAPI()
 
+def get_client():
+    with httpx.AsyncClient(timeout=60) as client:
+        yield client
+
+
+
 @app.get("/ordenanzas/all", response_model=List[Ordenanza])
-async def get_all_ordenanzas():
-    return await scrap.get_all_ordenanzas()
+async def get_all_ordenanzas(client: httpx.AsyncClient = Depends(get_client)):
+    return await scrap.get_all_ordenanzas(client)
 
 @app.get("/", response_model=List[Ordenanza])
 async def get_ordenanzas(

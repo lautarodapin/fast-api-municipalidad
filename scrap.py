@@ -31,24 +31,24 @@ MESES = {
 html_text = requests.post(url, data=dict(textobuscar=AÑO)).text
 soup = BeautifulSoup(html_text, "html.parser")
 
-async def get_all_ordenanzas() -> Optional[List[Ordenanza]]:
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        response = await client.post(url, data=dict(textobuscar=" "))
-        html_text = response.read()
-        soup = BeautifulSoup(html_text, "html.parser")
-        ordenanzas : List[Ordenanza] = []
-        for row in soup.find_all("tr"):
-            cells = row.find_all("td")
-            if not cells: continue
-            ordenanzas.append(
-                Ordenanza(
-                    año=cells[0].text, 
-                    numero=cells[1].text, 
-                    titulo=cells[2].text, 
-                    extracto=cells[3].text, 
-                    archivo=f'{base_url}{cells[4].find("a").get("href")[1:]}')
-            )
-        return ordenanzas
+async def get_all_ordenanzas(client: httpx.AsyncClient) -> Optional[List[Ordenanza]]:
+    # async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+    response = await client.post(url, data=dict(textobuscar=" "))
+    html_text = response.read()
+    soup = BeautifulSoup(html_text, "html.parser")
+    ordenanzas : List[Ordenanza] = []
+    for row in soup.find_all("tr"):
+        cells = row.find_all("td")
+        if not cells: continue
+        ordenanzas.append(
+            Ordenanza(
+                año=cells[0].text, 
+                numero=cells[1].text, 
+                titulo=cells[2].text, 
+                extracto=cells[3].text, 
+                archivo=f'{base_url}{cells[4].find("a").get("href")[1:]}')
+        )
+    return ordenanzas
 
 
 async def get_ordenanzas_por_año(year: int) -> Optional[List[Ordenanza]]:
