@@ -25,7 +25,7 @@ async def get_all_ordenanzas(
     if q:
         filtro = filter(
             lambda ordenanza: any([
-                any([word in prop for prop in [ordenanza.titulo, ordenanza.extracto, ordenanza.numero, str(ordenanza.año)]])
+                any([word.lower().strip() in prop.lower().strip() for prop in [ordenanza.titulo, ordenanza.extracto, ordenanza.numero, str(ordenanza.año)]])
                 for word in q.split(" ")
             ]), 
             ordenanzas,
@@ -35,14 +35,14 @@ async def get_all_ordenanzas(
     return results
     
 
-@app.get("/", response_model=List[Ordenanza])
+@app.get("/ordenanzas", response_model=List[Ordenanza])
 async def get_ordenanzas(
     year: int = Query(datetime.now().year, gt=1999),
     client: AsyncClient = Depends(get_client),
     ):
     return await scrap.get_ordenanzas_por_año(client, year)
 
-@app.get("/ordenanzas", response_model=List[Ordenanza])
+@app.get("/ordenanzas/desde", response_model=List[Ordenanza])
 async def get_ordenanzas_desde(
     desde: int = Query(datetime.now().year - 1, gt=1999, description="Año desde el cual buscar"),
     client: AsyncClient = Depends(get_client),
