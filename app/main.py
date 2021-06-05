@@ -1,8 +1,8 @@
 from typing import List
 from fastapi import FastAPI, Query, Path, Depends
-from .schemas import Carta, Consejal, OrdenDia, Ordenanza
+from schemas import Carta, Consejal, OrdenDia, Ordenanza
 from datetime import datetime
-from . import scrap
+import scrap
 import httpx
 
 app = FastAPI()

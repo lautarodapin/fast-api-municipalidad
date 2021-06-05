@@ -3,7 +3,7 @@ import requests
 import httpx
 from typing import List, Optional
 from bs4 import BeautifulSoup
-from .schemas import Consejal, OrdenDia, Ordenanza, Carta
+from schemas import Consejal, OrdenDia, Ordenanza, Carta
 from datetime import datetime
 import re
 transport = httpx.HTTPTransport(uds="/var/run/docker.sock")
