@@ -1,18 +1,17 @@
 from bs4.element import ResultSet
-import requests
-import httpx
+# import requests
+# import httpx
+from httpx import AsyncClient
 from typing import List, Optional
 from bs4 import BeautifulSoup
 from schemas import Consejal, OrdenDia, Ordenanza, Carta
 from datetime import datetime
 import re
-transport = httpx.HTTPTransport(uds="/var/run/docker.sock")
+
 # In [5]: response = requests.post("http://www.portalwebvillamercedes.gob.ar/ord/index.php", data=dict(textobuscar=
 #    ...: 2021))
 DEFAULT_TIMEOUT = 60
-base_url = "http://www.portalwebvillamercedes.gob.ar/ord"
-url = f"{base_url}/index.php"
-AÑO = 2021
+
 MESES = {
     "enero": 1,
     "febrero": 2,
@@ -28,11 +27,9 @@ MESES = {
     "diciembre": 12,
 }
 
-html_text = requests.post(url, data=dict(textobuscar=AÑO)).text
-soup = BeautifulSoup(html_text, "html.parser")
-
-async def get_all_ordenanzas(client: httpx.AsyncClient) -> Optional[List[Ordenanza]]:
-    response = await client.post(url, data=dict(textobuscar=" "))
+async def get_all_ordenanzas(client: AsyncClient) -> List[Ordenanza]:
+    base_url = "http://www.portalwebvillamercedes.gob.ar/ord"
+    response = await client.post(f"{base_url}/index.php", data=dict(textobuscar=" "))
     html_text = response.read()
     soup = BeautifulSoup(html_text, "html.parser")
     ordenanzas : List[Ordenanza] = []
@@ -51,30 +48,32 @@ async def get_all_ordenanzas(client: httpx.AsyncClient) -> Optional[List[Ordenan
     return ordenanzas
 
 
-async def get_ordenanzas_por_año(client: httpx.AsyncClient, year: int) -> Optional[List[Ordenanza]]:
-        response = await client.post(url, data=dict(textobuscar=year))
-        html_text = response.read()
-        soup = BeautifulSoup(html_text, "html.parser")
-        ordenanzas : List[Ordenanza] = []
-        for row in soup.find_all("tr"):
-            cells = row.find_all("td")
-            if not cells: continue
-            ordenanzas.append(
-                Ordenanza(
-                    año=cells[0].text, 
-                    numero=cells[1].text, 
-                    titulo=cells[2].text, 
-                    extracto=cells[3].text, 
-                    archivo=f'{base_url}{cells[4].find("a").get("href")[1:]}',
-                )
+async def get_ordenanzas_por_año(client: AsyncClient, year: int) -> List[Ordenanza]:
+    base_url = "http://www.portalwebvillamercedes.gob.ar/ord"
+    response = await client.post(f"{base_url}/index.php", data=dict(textobuscar=year))
+    html_text = response.read()
+    soup = BeautifulSoup(html_text, "html.parser")
+    ordenanzas : List[Ordenanza] = []
+    for row in soup.find_all("tr"):
+        cells = row.find_all("td")
+        if not cells: continue
+        ordenanzas.append(
+            Ordenanza(
+                año=cells[0].text, 
+                numero=cells[1].text, 
+                titulo=cells[2].text, 
+                extracto=cells[3].text, 
+                archivo=f'{base_url}{cells[4].find("a").get("href")[1:]}',
             )
-        return ordenanzas
+        )
+    return ordenanzas
 
 
-async def get_ordenanzas_desde(client: httpx.AsyncClient, year_from: int) -> Optional[List[Ordenanza]]:
+async def get_ordenanzas_desde(client: AsyncClient, year_from: int) -> List[Ordenanza]:
+    base_url = "http://www.portalwebvillamercedes.gob.ar/ord"
     ordenanzas : List[Ordenanza] = []
     for year in range(year_from, datetime.now().year):
-        response = await client.post(url, data=dict(textobuscar=year))
+        response = await client.post(f"{base_url}/index.php", data=dict(textobuscar=year))
         html_text = response.read()
         soup = BeautifulSoup(html_text, "html.parser")
         for row in soup.find_all("tr"):
@@ -91,36 +90,37 @@ async def get_ordenanzas_desde(client: httpx.AsyncClient, year_from: int) -> Opt
             ordenanzas.append(ordenanza)
     return ordenanzas
 
-async def get_ordenanza_por_numero(client: httpx.AsyncClient, numero: int) -> Optional[Ordenanza]:
-    response = await client.post(url, data=dict(textobuscar=numero))
+async def get_ordenanza_por_numero(client: AsyncClient, numero: int) -> Ordenanza:
+    base_url = "http://www.portalwebvillamercedes.gob.ar/ord"
+    response = await client.post(f"{base_url}/index.php", data=dict(textobuscar=numero))
     html_text = response.read()
     soup = BeautifulSoup(html_text, "html.parser")
-    ordenanza: Ordenanza
     for row in soup.find_all("tr"):
         cells = row.find_all("td")
         if not cells: continue
-        return Ordenanza(
-            año=cells[0].text, 
-            numero=cells[1].text, 
-            titulo=cells[2].text, 
-            extracto=cells[3].text, 
-            archivo=f'{base_url}{cells[4].find("a").get("href")[1:]}'
-        )
+        break
+    return Ordenanza(
+        año=cells[0].text, 
+        numero=cells[1].text, 
+        titulo=cells[2].text, 
+        extracto=cells[3].text, 
+        archivo=f'{base_url}{cells[4].find("a").get("href")[1:]}'
+    )
 
 
-async def get_presidente_honorable_consejo_deliberante(client: httpx.AsyncClient) -> Optional[Carta]:
-        base_url = "http://www.hcdvillamercedes.gob.ar"
-        response = await client.get(f"{base_url}/index.php/autoridades/presidencia")
-        soup = BeautifulSoup(response.read(), 'html.parser')
-        article: ResultSet = soup.find_all(attrs={"class":"article-intro clearfix", "itemprop":"articleBody"})
-        imagen = base_url + article[0].find("h1").find("img").get("src")
-        cargo = article[0].find("h2").text
-        cargo_hcd, _, periodo= list(map(str.strip, list(map(lambda x: x.text, article[0].find_all("p")[:3]))))
-        biografia = " ".join(list(filter(None, map(lambda x: x.strip(), article[0].find("div", attrs={"class":"gs"}).text.split('\n')))))
-        return Carta(imagen=imagen, cargo=cargo, cargo_hcd=cargo_hcd, biografia=biografia, periodo=periodo)
+async def get_presidente_honorable_consejo_deliberante(client: AsyncClient) -> Carta:
+    base_url = "http://www.hcdvillamercedes.gob.ar"
+    response = await client.get(f"{base_url}/index.php/autoridades/presidencia")
+    soup = BeautifulSoup(response.read(), 'html.parser')
+    article: ResultSet = soup.find_all(attrs={"class":"article-intro clearfix", "itemprop":"articleBody"})
+    imagen = base_url + article[0].find("h1").find("img").get("src")
+    cargo = article[0].find("h2").text
+    cargo_hcd, _, periodo= list(map(str.strip, list(map(lambda x: x.text, article[0].find_all("p")[:3]))))
+    biografia = " ".join(list(filter(None, map(lambda x: x.strip(), article[0].find("div", attrs={"class":"gs"}).text.split('\n')))))
+    return Carta(imagen=imagen, cargo=cargo, cargo_hcd=cargo_hcd, biografia=biografia, periodo=periodo)
 
 
-async def get_consejales(client: httpx.AsyncClient) -> List[Consejal]:
+async def get_consejales(client: AsyncClient) -> List[Consejal]:
     consejales: List[Consejal] = []
     base_url = "http://www.hcdvillamercedes.gob.ar"
     response = await client.get(f"{base_url}/index.php/concejales")
@@ -147,10 +147,10 @@ async def get_consejales(client: httpx.AsyncClient) -> List[Consejal]:
     return consejales
 
 
-async def get_ordenes_dia(client: httpx.AsyncClient, limit: int = 10, start: int = 1) -> List[OrdenDia]:
+async def get_ordenes_dia(client: AsyncClient, limit: int = 10, start: int = 1) -> List[OrdenDia]:
     ordenes : List[OrdenDia] = []
+    base_url = "http://www.hcdvillamercedes.gob.ar"
     for offset in range(start, limit + 1):
-        base_url = "http://www.hcdvillamercedes.gob.ar"
         response = await client.get(f"{base_url}/index.php/orden-del-dia?limit=1&start={offset}")
         soup = BeautifulSoup(response.text, 'html.parser')
         article = soup.find("article")
@@ -186,7 +186,7 @@ async def get_ordenes_dia(client: httpx.AsyncClient, limit: int = 10, start: int
         )
     return ordenes
 
-async def get_orden_dia(client: httpx.AsyncClient, id: int) -> Optional[OrdenDia]:
+async def get_orden_dia(client: AsyncClient, id: int) -> Optional[OrdenDia]:
     ordenes = await get_ordenes_dia(client)
     orden = list(filter(lambda orden: orden.id == id, ordenes))
     return orden[0] if orden else None
