@@ -190,3 +190,5 @@ async def get_orden_dia(client: AsyncClient, id: int) -> Optional[OrdenDia]:
     ordenes = await get_ordenes_dia(client)
     orden = list(filter(lambda orden: orden.id == id, ordenes))
     return orden[0] if orden else None
+
+

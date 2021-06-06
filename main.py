@@ -1,8 +1,10 @@
 from typing import List
 from fastapi import FastAPI, Query, Path, Depends
-from schemas import Carta, Consejal, OrdenDia, Ordenanza
+from starlette.responses import RedirectResponse
+from schemas import Carta, Consejal, FacebookPost, OrdenDia, Ordenanza
 from datetime import datetime
 import scrap
+import scraps.facebook_scrap
 from httpx import AsyncClient
 
 app = FastAPI()
@@ -14,6 +16,10 @@ def get_client():
     finally:
         del client
 
+
+@app.get("/")
+def docs():
+    return RedirectResponse(url="/docs")
 
 @app.get("/ordenanzas/all", response_model=List[Ordenanza])
 async def get_all_ordenanzas(
@@ -83,3 +89,8 @@ async def get_ordenes_del_dia(client: AsyncClient = Depends(get_client),):
 @app.get("/hcd/ordenes-del-dia/{id}", response_model=OrdenDia)
 async def get_orden_del_dia(id: int, client: AsyncClient = Depends(get_client),):
     return await scrap.get_orden_dia(client, id)
+
+
+@app.get("/hcd/facebook/posts", response_model=List[FacebookPost])
+async def get_hcd_posts(page_limit: int = Query(10)):
+    return await scraps.facebook_scrap.get_hcd_posts(page_limit=page_limit)
