@@ -6,15 +6,12 @@ from datetime import datetime
 import scrap
 import scraps.facebook_scrap
 from httpx import AsyncClient
+from utils import get_client
+
+import bcra.router as bcra_router
 
 app = FastAPI()
-
-def get_client():
-    client = AsyncClient(timeout=60)
-    try:
-        yield client
-    finally:
-        del client
+app.include_router(bcra_router.router)
 
 
 @app.get("/")
