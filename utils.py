@@ -1,8 +1,9 @@
 from httpx import AsyncClient
-def get_client():
+
+async def get_client():
     client = AsyncClient(timeout=60)
     try:
         yield client
     finally:
-        client.aclose()
+        await client.aclose()
         del client

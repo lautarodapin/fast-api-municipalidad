@@ -48,6 +48,9 @@ async def get_variable_by_serie_from_to(
     soup = BeautifulSoup(response.read(), "html.parser")
     table = soup.find_all("tbody")
     return [
-        VariableEconomica(fecha=tds[0].text, valor=tds[1].text) 
+        VariableEconomica(
+            fecha=tds[0].text, 
+            valor=tds[1].text,
+            ) 
         for row in table if (tds:=row.find_all('td'))
     ]
